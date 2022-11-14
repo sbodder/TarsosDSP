@@ -69,4 +69,14 @@ public class UniversalAudioInputStream implements TarsosDSPAudioInputStream {
 		return -1;
 	}
 
+	public void mark(int readLimit)
+	{
+		underlyingStream.mark(readLimit);
+	}
+
+	public void reset() throws IOException {
+	
+		underlyingStream.reset();
+	}
+
 }
