@@ -23,12 +23,16 @@
 
 package be.tarsos.dsp.io.android;
 
+import android.content.Context;
+
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import be.tarsos.dsp.AudioDispatcher;
+import be.tarsos.dsp.AudioDispatcherControllable;
 import be.tarsos.dsp.io.PipedAudioStream;
 import be.tarsos.dsp.io.TarsosDSPAudioFormat;
 import be.tarsos.dsp.io.TarsosDSPAudioInputStream;
+import be.tarsos.dsp.io.UniversalAudioInputStream;
 
 /**
  * The Factory creates {@link AudioDispatcher} objects from the
@@ -98,5 +102,13 @@ public class AudioDispatcherFactory {
 		PipedAudioStream f = new PipedAudioStream(source);
 		TarsosDSPAudioInputStream audioStream = f.getMonoStream(targetSampleRate,0);
 		return new AudioDispatcher(audioStream, audioBufferSize, bufferOverlap);
+	}
+
+	public static AudioDispatcherControllable fromPipeControllable(final Context context, final String source,final int targetSampleRate, final int audioBufferSize,final int bufferOverlap){
+
+		String nativeDirectory = context.getApplicationInfo().nativeLibraryDir;
+		PipedAudioStream f = new PipedAudioStream(source, nativeDirectory);
+		UniversalAudioInputStream audioStream = f.getMonoStream_S(targetSampleRate,0);
+		return new AudioDispatcherControllable(audioStream, audioBufferSize, bufferOverlap);
 	}
 }

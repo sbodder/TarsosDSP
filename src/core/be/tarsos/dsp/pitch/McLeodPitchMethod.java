@@ -91,7 +91,7 @@ public final class McLeodPitchMethod implements PitchDetector {
 	 * Pitch annotations below this threshold are considered invalid, they are
 	 * ignored.
 	 */
-	private static final double LOWER_PITCH_CUTOFF = 80.0; // Hz
+	private static final double LOWER_PITCH_CUTOFF = 16.0; // Hz
 
 	/**
 	 * Defines the relative size the chosen peak (pitch) has.

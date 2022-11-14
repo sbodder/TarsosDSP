@@ -45,8 +45,13 @@ public class AndroidFFMPEGLocator {
 
     private static final String TAG = "AndroidFFMPEGLocator";
 
+
+    private Context context;
+
     public AndroidFFMPEGLocator(Context context){
         CPUArchitecture architecture = getCPUArchitecture();
+
+        this.context = context;
 
         Log.i(TAG,"Detected Native CPU Architecture: " + architecture.name());
 
@@ -55,7 +60,9 @@ public class AndroidFFMPEGLocator {
             AssetManager assetManager = context.getAssets();
             unpackFFmpeg(assetManager,ffmpegFileName);
         }
-        File ffmpegTargetLocation = AndroidFFMPEGLocator.ffmpegTargetLocation();
+//        AndroidFFMPEGLocator.ffmeg_exe_path = ffmpegTargetLocation();
+        File ffmpegTargetLocation = ffmpegTargetLocation();
+
         Log.i(TAG, "Ffmpeg binary location: " + ffmpegTargetLocation.getAbsolutePath() + " is executable? " + ffmpegTargetLocation.canExecute() + " size: " + ffmpegTargetLocation.length() + " bytes");
     }
 
@@ -71,6 +78,12 @@ public class AndroidFFMPEGLocator {
             case ARMEABI_V7A_NEON:
                 ffmpegFileName = "armeabi-v7a-neon_ffmpeg";
                 break;
+            case ARM64_v8A:
+                ffmpegFileName = "arm64-v8a_ffmeg";
+                break;
+            case X86_64:
+                ffmpegFileName = "x86_64_ffmeg";
+                break;
             default:
                 ffmpegFileName = null;
                 String message= "Could not determine your processor architecture correctly, no ffmpeg binary available.";
@@ -81,7 +94,7 @@ public class AndroidFFMPEGLocator {
     }
 
     private boolean ffmpegIsCorrectlyInstalled(){
-        File ffmpegTargetLocation = AndroidFFMPEGLocator.ffmpegTargetLocation();
+        File ffmpegTargetLocation = ffmpegTargetLocation();
         //assumed to be correct if existing and executable and larger than 1MB:
         return ffmpegTargetLocation.exists() && ffmpegTargetLocation.canExecute() && ffmpegTargetLocation.length() > 1000000;
     }
@@ -90,12 +103,15 @@ public class AndroidFFMPEGLocator {
         InputStream inputStream=null;
         OutputStream outputStream=null;
         try{
-            File ffmpegTargetLocation = AndroidFFMPEGLocator.ffmpegTargetLocation();
+            File ffmpegTargetLocation = ffmpegTargetLocation();
             inputStream = assetManager.open(ffmpegAssetFileName);
+
+
             outputStream = new FileOutputStream(ffmpegTargetLocation);
             byte buffer[] = new byte[1024];
             int length = 0;
             while((length=inputStream.read(buffer)) > 0) {
+                Log.i(TAG," reading and writing to the stream ffmpeg , length is " + length + "\n");
                 outputStream.write(buffer,0,length);
             }
             //makes ffmpeg executable
@@ -122,14 +138,16 @@ public class AndroidFFMPEGLocator {
         }
     }
 
-    private static final File ffmpegTargetLocation(){
-        String tempDirectory = System.getProperty("java.io.tmpdir");
+    private final File ffmpegTargetLocation(){
+//        String tempDirectory = System.getProperty("java.io.tmpdir");
+        String tempDirectory = this.context.getApplicationInfo().nativeLibraryDir;
         File ffmpegTargetLocation = new File(tempDirectory,"ffmpeg");
+//        File ffmpegTargetLocation = new File(tempDirectory,"armeabi-v7a_ffmpeg");
         return ffmpegTargetLocation;
     }
 
     private enum CPUArchitecture{
-        X86,ARMEABI_V7A,ARMEABI_V7A_NEON;
+        X86,ARMEABI_V7A,ARMEABI_V7A_NEON, ARM64_v8A, X86_64 ;
     }
 
     private boolean isCPUArchitectureSupported(String alias) {
@@ -156,6 +174,14 @@ public class AndroidFFMPEGLocator {
             } else {
                 return CPUArchitecture.ARMEABI_V7A;
             }
+        }
+        else if (isCPUArchitectureSupported("x86_64")) 
+        {
+            return CPUArchitecture.X86_64;
+        }
+        else if (isCPUArchitectureSupported("arm64-v8a")) 
+        {
+            return CPUArchitecture.ARM64_v8A;
         }
         return null;
     }

@@ -1,12 +1,15 @@
 package be.tarsos.dsp.io.android;
-
+import java.lang.*;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.AudioAttributes;
 import android.util.Log;
 
+
+import be.tarsos.dsp.AudioDispatcherControllable;
 import be.tarsos.dsp.AudioEvent;
-import be.tarsos.dsp.AudioProcessor;
+import be.tarsos.dsp.AudioProcessorControllable;
 import be.tarsos.dsp.io.TarsosDSPAudioFloatConverter;
 import be.tarsos.dsp.io.TarsosDSPAudioFormat;
 
@@ -20,7 +23,7 @@ import be.tarsos.dsp.io.TarsosDSPAudioFormat;
  * @author Joren Six
  * @see AudioTrack
  */
-public class AndroidAudioPlayer implements AudioProcessor {
+public class AndroidAudioPlayer implements AudioProcessorControllable {
     /**
      * The default stream type to use.
      */
@@ -28,8 +31,11 @@ public class AndroidAudioPlayer implements AudioProcessor {
     private static final String TAG = "AndroidAudioPlayer";
 
     private final AudioTrack audioTrack;
-
-
+    private int m_sampleRate;
+    private int m_intLastPlayerHeadPoistionWhenFileWasRead;
+    private AudioDispatcherControllable dispatcher;
+    private float m_flSecondsProcessed = 0;
+    private boolean paused = false; 
     /**
      * Constructs a new AndroidAudioPlayer from an audio format, default buffer size and stream type.
      *
@@ -47,7 +53,8 @@ public class AndroidAudioPlayer implements AudioProcessor {
         }
 
         // The requested sample rate
-        int sampleRate = (int) audioFormat.getSampleRate();
+        m_sampleRate = (int) audioFormat.getSampleRate();
+
 
         //The buffer size in bytes is twice the buffer size expressed in samples if 16bit samples are used:
         int bufferSizeInBytes = bufferSizeInSamples * audioFormat.getSampleSizeInBits()/8;
@@ -59,13 +66,29 @@ public class AndroidAudioPlayer implements AudioProcessor {
         // this is the maximum length sample, or audio clip, that can be played by this instance. See getMinBufferSize(int, int, int) to determine
         // the minimum required buffer size for the successful creation of an AudioTrack instance in streaming mode. Using values smaller
         // than getMinBufferSize() will result in an initialization failure.
-        int minBufferSizeInBytes = AudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO,  AudioFormat.ENCODING_PCM_16BIT);
+        int minBufferSizeInBytes = AudioTrack.getMinBufferSize(m_sampleRate, AudioFormat.CHANNEL_OUT_MONO,  AudioFormat.ENCODING_PCM_16BIT);
         if(minBufferSizeInBytes > bufferSizeInBytes){
             throw new IllegalArgumentException("The buffer size should be at least " + (minBufferSizeInBytes/(audioFormat.getSampleSizeInBits()/8)) + " (samples) according to  AudioTrack.getMinBufferSize().");
         }
 
         //http://developer.android.com/reference/android/media/AudioTrack.html#AudioTrack(int, int, int, int, int, int)
-        audioTrack = new AudioTrack(streamType, sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSizeInBytes,AudioTrack.MODE_STREAM);
+//        audioTrack = new AudioTrack(streamType, m_sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSizeInBytes,AudioTrack.MODE_STREAM);
+
+        Log.e("TUNE_TRACKER", "setting up audiotrack ");
+
+        audioTrack = new AudioTrack.Builder()
+                .setAudioAttributes(new AudioAttributes.Builder()
+                        .build())
+                .setAudioFormat(new AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(m_sampleRate)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                        .build())
+                .setBufferSizeInBytes(bufferSizeInBytes)
+                .build();
+
+
+        Log.e("TUNE_TRACKER", "after setting up audiotrack ");
 
         audioTrack.play();
     }
@@ -88,11 +111,23 @@ public class AndroidAudioPlayer implements AudioProcessor {
         int overlapInSamples = audioEvent.getOverlap();
         int stepSizeInSamples = audioEvent.getBufferSize() - overlapInSamples;
         byte[] byteBuffer = audioEvent.getByteBuffer();
+        float secProc = this.round(this.dispatcher.secondsProcessed(), 3);        
+    
+        if (!paused) {
 
+            if (secProc != m_flSecondsProcessed) 
+            {
+                m_intLastPlayerHeadPoistionWhenFileWasRead = audioTrack.getPlaybackHeadPosition();
+                m_flSecondsProcessed = secProc;
+            }
+
+        
         //int ret = audioTrack.write(audioEvent.getFloatBuffer(),overlapInSamples,stepSizeInSamples,AudioTrack.WRITE_BLOCKING);
-        int ret = audioTrack.write(byteBuffer,overlapInSamples*2,stepSizeInSamples*2);
-        if (ret < 0) {
-            Log.e(TAG, "AudioTrack.write returned error code " + ret);
+            
+            int ret = audioTrack.write(byteBuffer,overlapInSamples*2,stepSizeInSamples*2);
+            if (ret < 0) {
+                Log.e("TUNE_TRACKER", "AudioTrack.write returned error code " + ret);
+            }
         }
         return true;
     }
@@ -106,4 +141,68 @@ public class AndroidAudioPlayer implements AudioProcessor {
         audioTrack.stop();
         audioTrack.release();
     }
+
+    @Override
+    public void play()
+    {
+        paused = false;
+        audioTrack.play(); 
+    }
+
+    @Override
+    public void pause()
+    {        
+        paused = true;       
+        audioTrack.pause();    
+      //  audioTrack.flush();    
+    }
+
+
+    private  float round(float number, int scale) {
+        int pow = 10;
+        for (int i = 1; i < scale; i++)
+            pow *= 10;
+        float tmp = number * pow;
+        return ( (float) ( (int) ((tmp - (int) tmp) >= 0.5f ? tmp + 1 : tmp) ) ) / pow;
+    }
+
+
+    public float getSecondsProcessed() {
+        return m_flSecondsProcessed;
+    }
+
+    public void setSecondsProcessed(float secondsProcessed) {
+        m_flSecondsProcessed = secondsProcessed;
+        audioTrack.pause();
+        audioTrack.setPlaybackHeadPosition(0);
+        audioTrack.flush();
+        m_intLastPlayerHeadPoistionWhenFileWasRead = 0;
+    }
+
+
+    public int getPositionMs() {
+        return convertFramesToTime(audioTrack.getPlaybackHeadPosition() - m_intLastPlayerHeadPoistionWhenFileWasRead);
+    }
+
+    public int getPlaybackPostion() {
+        return audioTrack.getPlaybackHeadPosition();
+    }
+
+    public int getLastPlaybackPostionBeforeWriteToTrack() {
+        return m_intLastPlayerHeadPoistionWhenFileWasRead;
+    }
+
+    public float getDispatcherElapsedTime() {
+        return this.dispatcher.secondsProcessed();
+    }
+
+
+    private int convertFramesToTime(int intFrames)
+    {
+        return (int)Math.floor(((double)intFrames / m_sampleRate) * 1000.0);
+    }
+
+    public void setDispatcher(AudioDispatcherControllable newDispatcher){
+		this.dispatcher = newDispatcher;
+	}
 }

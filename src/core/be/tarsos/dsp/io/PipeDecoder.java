@@ -23,6 +23,7 @@
 
 package be.tarsos.dsp.io;
 
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -35,6 +36,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import be.tarsos.dsp.util.FFMPEGDownloader;
+//import be.tarsos.dsp.io.android.AndroidFFMPEGLocator;
+//
+//import Android.Content.PM.PackageManager;
 
 /**
  * <p>
@@ -69,69 +73,81 @@ A... adpcm_4xm            ADPCM 4X Movie
 public class PipeDecoder {
 	
 	private final static Logger LOG = Logger.getLogger(PipeDecoder.class.getName());
-	private final String pipeEnvironment;
-	private final String pipeArgument;
-	private final String pipeCommand;
-	private final int pipeBuffer;
+	private  String pipeEnvironment;
+	private  String pipeArgument;
+	private  String pipeCommand;
+	private int pipeBuffer;
 
 	private boolean printErrorstream = false;
 
 	private String decoderBinaryAbsolutePath;
-	
-	public PipeDecoder(){
-		pipeBuffer = 10000;
 
-		//Use sensible defaults depending on the platform
-		if(System.getProperty("os.name").indexOf("indows") > 0 ){
-			pipeEnvironment = "cmd.exe";
-			pipeArgument = "/C";
-		}else if(new File("/bin/bash").exists()){
-			pipeEnvironment = "/bin/bash";
-			pipeArgument = "-c";
-		}else if (new File("/system/bin/sh").exists()){
-			//probably we are on android here
-			pipeEnvironment = "/system/bin/sh";
-			pipeArgument = "-c";
-		}else{
-			LOG.severe("Coud not find a command line environment (cmd.exe or /bin/bash)");
-			throw new Error("Decoding via a pipe will not work: Coud not find a command line environment (cmd.exe or /bin/bash)");
-		}
-		
-		String path = System.getenv("PATH");
-		String arguments = " -ss %input_seeking%  %number_of_seconds% -i \"%resource%\" -vn -ar %sample_rate% -ac %channels% -sample_fmt s16 -f s16le pipe:1";
-		if(isAvailable("ffmpeg")){
-			LOG.info("found ffmpeg on the path (" + path + "). Will use ffmpeg for decoding media files.");
-			pipeCommand = "ffmpeg" + arguments;	
-		}else if (isAvailable("avconv")){
-			LOG.info("found avconv on your path(" + path + "). Will use avconv for decoding media files.");
-			pipeCommand = "avconv" + arguments;
-		}else {
-			if(isAndroid()) {
-				String tempDirectory = System.getProperty("java.io.tmpdir");
-				printErrorstream=true;
-				File f = new File(tempDirectory, "ffmpeg");
-				if (f.exists() && f.length() > 1000000 && f.canExecute()) {
-					decoderBinaryAbsolutePath = f.getAbsolutePath();
-				} else {
-					LOG.severe("Could not find an ffmpeg binary for your Android system. Did you forget calling: 'new AndroidFFMPEGLocator(this);' ?");
-					LOG.severe("Tried to unpack a statically compiled ffmpeg binary for your architecture to: " + f.getAbsolutePath());
-				}
-			}else{
-				LOG.warning("Dit not find ffmpeg or avconv on your path(" + path + "), will try to download it automatically.");
-				FFMPEGDownloader downloader = new FFMPEGDownloader();
-				decoderBinaryAbsolutePath = downloader.ffmpegBinary();
-				if(decoderBinaryAbsolutePath==null){
-					LOG.severe("Could not download an ffmpeg binary automatically for your system.");
-				}
-			}
-			if(decoderBinaryAbsolutePath == null){
-				pipeCommand = "false";
-				throw new Error("Decoding via a pipe will not work: Could not find an ffmpeg binary for your system");
-			}else{
-				pipeCommand = '"' + decoderBinaryAbsolutePath + '"' + arguments;
-			}
-		}
+	public PipeDecoder(){
+		this.initialise(null);
+
 	}
+
+	public PipeDecoder(String nativeDirectory){
+		this.initialise(nativeDirectory);
+	}
+
+	 private void initialise(String nativeDirectory) {
+		 pipeBuffer = 10000;
+
+		 //Use sensible defaults depending on the platform
+		 if(System.getProperty("os.name").indexOf("indows") > 0 ){
+			 pipeEnvironment = "cmd.exe";
+			 pipeArgument = "/C";
+		 }else if(new File("/bin/bash").exists()){
+			 pipeEnvironment = "/bin/bash";
+			 pipeArgument = "-c";
+		 }else if (new File("/system/bin/sh").exists()){
+			 //probably we are on android here
+			 pipeEnvironment = "/system/bin/sh";
+			 pipeArgument = "-c";
+		 }else{
+			 LOG.severe("Coud not find a command line environment (cmd.exe or /bin/bash)");
+			 throw new Error("Decoding via a pipe will not work: Coud not find a command line environment (cmd.exe or /bin/bash)");
+		 }
+
+		 String path = System.getenv("PATH");
+		 String arguments = " -ss %input_seeking%  %number_of_seconds% -i \"%resource%\" -vn -ar %sample_rate% -ac %channels% -sample_fmt s16 -f s16le pipe:1";
+		 if(isAvailable("ffmpeg")){
+			 LOG.info("found ffmpeg on the path (" + path + "). Will use ffmpeg for decoding media files.");
+			 pipeCommand = "ffmpeg" + arguments;
+		 }else if (isAvailable("avconv")){
+			 LOG.info("found avconv on your path(" + path + "). Will use avconv for decoding media files.");
+			 pipeCommand = "avconv" + arguments;
+		 }else {
+			 if(isAndroid()) {
+				 if (nativeDirectory == null) {
+					 nativeDirectory = System.getProperty("java.io.tmpdir");
+				 }
+
+				 printErrorstream=true;
+				 File f = new File(nativeDirectory, "ffmpeg");
+				 if (f.exists() && f.length() > 1000000 && f.canExecute()) {
+					 decoderBinaryAbsolutePath = f.getAbsolutePath();
+				 } else {
+					 LOG.severe("Could not find an ffmpeg binary for your Android system. Did you forget calling: 'new AndroidFFMPEGLocator(this);' ?");
+					 LOG.severe("Tried to unpack a statically compiled ffmpeg binary for your architecture to: " + f.getAbsolutePath());
+				 }
+			 }else{
+				 LOG.warning("Dit not find ffmpeg or avconv on your path(" + path + "), will try to download it automatically.");
+				 FFMPEGDownloader downloader = new FFMPEGDownloader();
+				 decoderBinaryAbsolutePath = downloader.ffmpegBinary();
+				 if(decoderBinaryAbsolutePath==null){
+					 LOG.severe("Could not download an ffmpeg binary automatically for your system.");
+				 }
+			 }
+			 if(decoderBinaryAbsolutePath == null){
+				 pipeCommand = "false";
+				 throw new Error("Decoding via a pipe will not work: Could not find an ffmpeg binary for your system");
+			 }else{
+				 pipeCommand = '"' + decoderBinaryAbsolutePath + '"' + arguments;
+			 }
+		 }
+	 }
 	
 	private boolean isAvailable(String command){
 		try{

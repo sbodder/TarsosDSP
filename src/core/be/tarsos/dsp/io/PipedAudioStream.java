@@ -51,7 +51,7 @@ public class PipedAudioStream {
 	//private final static Logger LOG = Logger.getLogger(PipedAudioStream.class.getName());
 	
 	private final String resource;
-	private static PipeDecoder pipeDecoder = new PipeDecoder();
+	private static PipeDecoder pipeDecoder;
 	
 	public static void setDecoder(PipeDecoder decoder){
 		pipeDecoder = decoder;
@@ -59,6 +59,14 @@ public class PipedAudioStream {
 	
 	private final PipeDecoder decoder;
 	public PipedAudioStream(String resource){
+
+		PipedAudioStream.pipeDecoder = new PipeDecoder();
+		this.resource = AudioResourceUtils.sanitizeResource(resource);
+		decoder = pipeDecoder;
+	}
+
+	public PipedAudioStream(String resource, String nativeDirectory){
+		PipedAudioStream.pipeDecoder = new PipeDecoder(nativeDirectory);
 		this.resource = AudioResourceUtils.sanitizeResource(resource);
 		decoder = pipeDecoder;
 	}
@@ -71,6 +79,10 @@ public class PipedAudioStream {
 	 */
 	public TarsosDSPAudioInputStream getMonoStream(int targetSampleRate,double startTimeOffset){
 		return getMonoStream(targetSampleRate, startTimeOffset,-1);
+	}
+
+	public UniversalAudioInputStream getMonoStream_S(int targetSampleRate,double startTimeOffset){
+		return getMonoStream_U(targetSampleRate, startTimeOffset,-1);
 	}
 	
 	private TarsosDSPAudioFormat getTargetFormat(int targetSampleRate){
@@ -86,6 +98,13 @@ public class PipedAudioStream {
 	 * @return An audio stream which can be used to read samples from.
 	 */
 	public TarsosDSPAudioInputStream getMonoStream(int targetSampleRate, double startTimeOffset,
+			double numberOfSeconds) {
+		InputStream stream = null;
+		stream = decoder.getDecodedStream(resource, targetSampleRate,startTimeOffset,numberOfSeconds);
+		return new UniversalAudioInputStream(stream, getTargetFormat(targetSampleRate));
+	}
+
+	public UniversalAudioInputStream getMonoStream_U(int targetSampleRate, double startTimeOffset,
 			double numberOfSeconds) {
 		InputStream stream = null;
 		stream = decoder.getDecodedStream(resource, targetSampleRate,startTimeOffset,numberOfSeconds);

@@ -8,7 +8,7 @@
 	
 	<!-- If you want to build an Android TarsosDSP jar file, please download the Android SDK and 
 	     Fix   -->
-	<property name="android_jar" value="/opt/Android/android-sdk-linux/platforms/android-22/android.jar" />
+	<property name="android_jar" value="/mnt/c/Users/Shane/sdk-tools-linux-4333796/platforms/android-31/android.jar" />
 
 	<!-- run the ant timestamp task -->
 	<tstamp />
@@ -27,9 +27,9 @@
 	<!-- Compiles the java files to a jar file and copy required resources -->
 	<target name="compile_for_jvm">
 		<mkdir dir="../bin" />
-		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false" target="1.7" source="1.7" />
-		<javac srcdir="../src/jvm" destdir="../bin" includeantruntime="false" target="1.7" source="1.7" />
-		<javac srcdir="../src/examples" destdir="../bin" includeantruntime="false" target="1.7" source="1.7" />
+		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false" target="12" source="12" />
+		<javac srcdir="../src/jvm" destdir="../bin" includeantruntime="false" target="12" source="12" />
+		<javac srcdir="../src/examples" destdir="../bin" includeantruntime="false" target="12" source="12" />
 		
 
 		<!-- copy all needed resources to bin dir -->
@@ -42,8 +42,9 @@
 	<target name="compile_for_android">
 		<delete dir="../bin" />
 		<mkdir dir="../bin" />
-		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false"  target="1.7" source="1.7"/>
-		<javac srcdir="../src/android" destdir="../bin" includeantruntime="false" target="1.7" source="1.7" >
+		<echo message="Using Java version ${ant.java.version}."/>
+		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false"  target="12" source="12"/>
+		<javac srcdir="../src/android" destdir="../bin" includeantruntime="false" target="12" source="12" >
 			<classpath>
 				<pathelement location="${android_jar}"/>
 			</classpath>
@@ -91,7 +92,7 @@
 			nonavbar="false" 
 			notree="false" 
 			packagenames="be.tarsos.dsp.*" 
-			source="1.7"
+			source="12"
 			splitindex="true" 
 			use="true" 
 			version="true" >
