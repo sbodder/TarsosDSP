@@ -98,8 +98,9 @@ public class AudioDispatcherFactory {
 	 * 			  The number of samples to overlap the current and previous buffer.
 	 * @return A new audioprocessor.
 	 */
-	public static AudioDispatcher fromPipe(final String source,final int targetSampleRate, final int audioBufferSize,final int bufferOverlap){
-		PipedAudioStream f = new PipedAudioStream(source);
+	public static AudioDispatcher fromPipe(final Context context, final String source,final int targetSampleRate, final int audioBufferSize,final int bufferOverlap){
+		String nativeDirectory = context.getApplicationInfo().nativeLibraryDir;
+		PipedAudioStream f = new PipedAudioStream(source, nativeDirectory);
 		TarsosDSPAudioInputStream audioStream = f.getMonoStream(targetSampleRate,0);
 		return new AudioDispatcher(audioStream, audioBufferSize, bufferOverlap);
 	}

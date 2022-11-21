@@ -141,7 +141,7 @@ public class AndroidFFMPEGLocator {
     private final File ffmpegTargetLocation(){
 //        String tempDirectory = System.getProperty("java.io.tmpdir");
         String tempDirectory = this.context.getApplicationInfo().nativeLibraryDir;
-        File ffmpegTargetLocation = new File(tempDirectory,"ffmpeg");
+        File ffmpegTargetLocation = new File(tempDirectory,"libffmpeg.so");
 //        File ffmpegTargetLocation = new File(tempDirectory,"armeabi-v7a_ffmpeg");
         return ffmpegTargetLocation;
     }
