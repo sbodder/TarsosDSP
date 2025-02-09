@@ -8,7 +8,7 @@
 	
 	<!-- If you want to build an Android TarsosDSP jar file, please download the Android SDK and 
 	     Fix   -->
-	<property name="android_jar" value="/mnt/c/Users/Shane/sdk-tools-linux-4333796/platforms/android-31/android.jar" />
+	<property name="android_jar" value="/usr/lib/android-sdk/platforms/android-33/android.jar" />
 
 	<!-- run the ant timestamp task -->
 	<tstamp />
@@ -24,12 +24,12 @@
 		<delete dir="TarsosDSP-${version}-Documentation" />
 	</target>
 
-	<!-- Compiles the java files to a jar file and copy required resources -->
+	<!-- Compiles the java files to a jar file and copy required resources, not target here is the version of the Java JDK -->
 	<target name="compile_for_jvm">
 		<mkdir dir="../bin" />
-		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false" target="12" source="12" />
-		<javac srcdir="../src/jvm" destdir="../bin" includeantruntime="false" target="12" source="12" />
-		<javac srcdir="../src/examples" destdir="../bin" includeantruntime="false" target="12" source="12" />
+		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false" target="17" source="17" />
+		<javac srcdir="../src/jvm" destdir="../bin" includeantruntime="false" target="17" source="17" />
+		<javac srcdir="../src/examples" destdir="../bin" includeantruntime="false" target="17" source="17" />
 		
 
 		<!-- copy all needed resources to bin dir -->
@@ -43,8 +43,8 @@
 		<delete dir="../bin" />
 		<mkdir dir="../bin" />
 		<echo message="Using Java version ${ant.java.version}."/>
-		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false"  target="12" source="12"/>
-		<javac srcdir="../src/android" destdir="../bin" includeantruntime="false" target="12" source="12" >
+		<javac srcdir="../src/core" destdir="../bin" includeantruntime="false"  target="17" source="17"/>
+		<javac srcdir="../src/android" destdir="../bin" includeantruntime="false" target="17" source="17" >
 			<classpath>
 				<pathelement location="${android_jar}"/>
 			</classpath>
